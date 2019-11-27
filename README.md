@@ -4,7 +4,7 @@ Platform : PC <br>
 Genre : Puzzle
 
 ## Description
-Core gameplay of match three game.
+Core gameplay of match three game. Implementing object pooler used for pool tiles.
 
 ## Gameplay
 Matching minimum three tiles horizontally and vertically.
