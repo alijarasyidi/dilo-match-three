@@ -10,8 +10,6 @@ public class Tile : MonoBehaviour
     private Vector3 tempPosition;
     private int previousColumn;
     private int previousRow;
-    //private bool isTriggerCourotine = false;
-
 
     //Menampung data posisi tile
     public float xPosition;
@@ -22,6 +20,8 @@ public class Tile : MonoBehaviour
     private GameObject otherTile;
 
     public bool isMatched = false;
+    public bool isTransient = false; // Mencegah bug pada kondisi transien
+    public bool isMoved = false; // State pada tile yang sedang bergerak
 
     // Start is called before the first frame update
     void Start()
@@ -32,16 +32,16 @@ public class Tile : MonoBehaviour
         yPosition = transform.position.y;
         column = Mathf.RoundToInt((xPosition - grid.startPos.x) / grid.offset.x);
         row = Mathf.RoundToInt((yPosition - grid.startPos.y) / grid.offset.x);
-
-        previousColumn = column;
-        previousRow = row;
     }
 
     // Update is called once per frame
     void Update()
     {
         // Cek apakah sudah match
-        CheckMatches ();
+        if (!isTransient && !isMoved)
+        {
+            CheckMatches ();
+        }
 
         // Per swipe an
         xPosition = (column * grid.offset.x) + grid.startPos.x;
@@ -57,10 +57,14 @@ public class Tile : MonoBehaviour
         {
             if (!isMatched && !otherTile.GetComponent<Tile>().isMatched)
             {
+                isTransient = true;
+                otherTile.GetComponent<Tile>().isTransient = true;
                 otherTile.GetComponent<Tile>().row = row;
                 otherTile.GetComponent<Tile>().column = column;
                 row = previousRow;
                 column = previousColumn;
+                Invoke ("WaitTransient", .2f);
+                otherTile.GetComponent<Tile>().Invoke ("WaitTransient", .2f);
             }
             else
             {
@@ -69,6 +73,11 @@ public class Tile : MonoBehaviour
         }
         otherTile = null;
         //isTriggerCourotine = false;
+    }
+
+    public void WaitTransient ()
+    {
+        isTransient = false;
     }
 
     void OnMouseDown()
@@ -122,17 +131,13 @@ public class Tile : MonoBehaviour
             transform.position = tempPosition;
             grid.tiles[column, row] = this.gameObject;
         }
-
-        // if (!isTriggerCourotine)
-        // {
-        //     StartCoroutine (checkMove());
-        // }
-
-        //StartCoroutine (checkMove());
     }
 
     void MoveTile()
     {
+        previousColumn = column;
+        previousRow = row;
+
         if (swipeAngle > -45 && swipeAngle <= 45)
         {
             //Right swipe
@@ -159,32 +164,50 @@ public class Tile : MonoBehaviour
     {
         //Menukar posisi dengan sebelah kanan nya
         otherTile = grid.tiles[column + 1, row];
+        isMoved = true;
+        otherTile.GetComponent<Tile>().isMoved = true;
         otherTile.GetComponent<Tile>().column -= 1;
         column += 1;
+        Invoke ("RevertIsMoved", .5f);
     }
 
     void SwipeUpMove()
     {
         //Menukar posisi dengan sebelah atasnya
         otherTile = grid.tiles[column, row + 1];
+        isMoved = true;
+        otherTile.GetComponent<Tile>().isMoved = true;
         otherTile.GetComponent<Tile>().row -= 1;
         row += 1;
+        Invoke ("RevertIsMoved", .5f);
     }
 
     void SwipeLeftMove()
     {
         //Menukar posisi dengan sebelah kirinya
         otherTile = grid.tiles[column - 1, row];
+        isMoved = true;
+        otherTile.GetComponent<Tile>().isMoved = true;
         otherTile.GetComponent<Tile>().column += 1;
         column -= 1;
+        Invoke ("RevertIsMoved", .5f);
     }
 
     void SwipeDownMove()
     {
         //Menukar posisi denhgan sebelah bawahnya
         otherTile = grid.tiles[column, row - 1];
+        isMoved = true;
+        otherTile.GetComponent<Tile>().isMoved = true;
         otherTile.GetComponent<Tile>().row += 1;
         row -= 1;
+        Invoke ("RevertIsMoved", .5f);
+    }
+
+    void RevertIsMoved ()
+    {
+        isMoved = false;
+        otherTile.GetComponent<Tile>().isMoved = false;
     }
 
     void CheckMatches()
@@ -202,6 +225,8 @@ public class Tile : MonoBehaviour
                     isMatched = true;
                     rightTile.GetComponent<Tile>().isMatched = true;
                     leftTile.GetComponent<Tile>().isMatched = true;
+                    Debug.Log (column.ToString() + " " + row.ToString() + " hor");
+                    Debug.Log (rightTile.tag + " " + leftTile.tag);
                 }
             }
         }
@@ -218,6 +243,8 @@ public class Tile : MonoBehaviour
                     isMatched = true;
                     downTile.GetComponent<Tile>().isMatched = true;
                     upTile.GetComponent<Tile>().isMatched = true;
+                    Debug.Log (column.ToString() + " " + row.ToString() + " ver");
+                    Debug.Log (upTile.tag + " " + downTile.tag);
                 }
             }
         }
